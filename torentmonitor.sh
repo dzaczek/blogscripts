@@ -1,0 +1,2 @@
+#!/bin/sh
+notify-send -u normal -t 3000 "Monitoring script started $$"; while true; do  nmcli con |if [[  $(perl -ne 'print "1\n" if /(^\S+)\s+(\S+)\s+vpn\s+(\S+)\s+/ &&  $3 ne "--" ') -eq 1 ]]; then echo  "ok minitor work vpn work torrent work > /tmp/appstatus.log"; else kill -9 $(ps aux | grep 'deluge\|transmission' | grep -v grep |  cut -d" " -f3)  > /dev/null 2>&1 &&  notify-send -u normal -t 1000000 "VPN Dont working killing torrent"  || echo  "Torrent and vpn dont work" > /tmp/appstatus.log ; fi; sleep 2; done
