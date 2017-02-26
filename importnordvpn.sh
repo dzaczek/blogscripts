@@ -29,10 +29,17 @@ while getopts ":u:p:d:c h" opt; do
  esac
 done
 
+
+if [ "$#" ==  0 ]; then 
+
+    echo "Parameter do not found please use -h for help"  ; exit 1;
+	exit 1
+fi 	
+
 #check if -h print help end exit
 if [ "x" != "x$ah" ]; then
   cat << EOF
-          #script batch adding openvpn  nordvpn configs to nmcli
+          script batch adding openvpn  nordvpn configs to nmcli
           #time adding  1583 VPN'S  3:02:17.37 total
       usage: up ./importnordvpn.sh [-u <"username">| -p <"password">][-h][-d <directory>][-c]
             -u username (is mail ) it must be in qoutes " "
@@ -50,10 +57,10 @@ if [ "x" != "x$ah" ]; then
              ./importnordvpn -c
           clean configuration and load new
             ./importnordvpn -c -u "myemail@examplemail.com" -p "P44SSwoRd" -d Download/configs/
-      ___________________________________________________
-      Report bugs to:dzaczek[animaletingbanana]sysop.cat
+      __________________________________________________________
+      Report bugs to:dzaczek[animaleatingyellow fruit]sysop.cat
       up home page:https://consolechars.wordpress.com/
-      ___________________________________________________
+      ______________)____________________________________________
 EOF
 
   exit 1
