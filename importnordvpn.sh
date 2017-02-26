@@ -34,7 +34,7 @@ if [ "x" != "x$ah" ]; then
   cat << EOF
           #script batch adding openvpn  nordvpn configs to nmcli
           #time adding  1583 VPN'S  3:02:17.37 total
-      usage: up ./importnordvpn.sh [-u <"username">| -p <"password">][-h][--d <directory>][-c]
+      usage: up ./importnordvpn.sh [-u <"username">| -p <"password">][-h][-d <directory>][-c]
             -u username (is mail ) it must be in qoutes " "
             -p password it must be in qoutes " "
             -d patch to direcotory  ovpn files arguments not required you can run script in direcotry
