@@ -1,12 +1,12 @@
 #!/bin/bash
 #title           :importnordvpn.sh
 #description     :This script will batch import ovpn files  .
-#author		       :dzaczek consolechars.wordpress.com
+#author          :dzaczek consolechars.wordpress.com
 #date            :20170225
 #version         :0.1
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs]
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
-#notes           : Scprit reqquired time, for add 1583 vpn config needed 3h 2m
+#notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
 #==============================================================================
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
