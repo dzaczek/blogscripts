@@ -2,12 +2,16 @@
 #title           :importnordvpn.sh
 #description     :This script will batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
-#date            :20170225
-#version         :0.1
+#date            :20170227
+#version         :0.2
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs]
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
 #==============================================================================
+sessionname=$(< /dev/urandom  tr -dc _A-Z-a-z-0-9 | head -c${8:-15};echo)
+target="/tmp/$sessionname/nordvpn.zip"
+target_1=/tmp/$sessionname/
+
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
   while [[ $(nmcli con show | awk '$3=="vpn" {print "1"}' | wc -l) -gt 0  ]]; do
@@ -16,13 +20,29 @@ remove_all_vpn(){
 echo "Connection VPN removed"
 }
 
-while getopts ":u:p:d:c h" opt; do
+get_ovpn_files(){
+  #get form network vpn-config files
+  mkdir $target_1
+  url_config_f="aHR0cHM6Ly9ub3JkdnBuLmNvbS9hcGkvZmlsZXMvemlwCg=="
+  wget $(echo "$url_config_f" | base64 -d) -O  $target
+  if [ $? -eq 1 ]; then
+    echo "I cant download ovpn files check internet connection"
+  exit 1
+  fi
+  unzip $target -d$target_1
+
+  rm -f $target
+
+}
+
+while getopts ":u:p:d:c h g" opt; do
  case $opt in
    u) au=$OPTARG   ;;
    p) ap=$OPTARG   ;;
    c) ac=1         ;;
    d) ad=$OPTARG ;;
    h) ah=1 ;;
+   g) ag=1 ;;
    \?)       echo "Invalid option: -$OPTARG\n Please use parameter -h for help" >&2
    exit 1 ;;
 
@@ -30,11 +50,11 @@ while getopts ":u:p:d:c h" opt; do
 done
 
 
-if [ "$#" ==  0 ]; then 
+if [ "$#" ==  0 ]; then
 
     echo "Parameter do not found please use -h for help"  ; exit 1;
 	exit 1
-fi 	
+fi
 
 #check if -h print help end exit
 if [ "x" != "x$ah" ]; then
@@ -46,6 +66,7 @@ if [ "x" != "x$ah" ]; then
             -p password it must be in qoutes " "
             -d patch to direcotory  ovpn files arguments not required you can run script in direcotry
                 version 0.1 do not suport white space in file name
+             -g Get configs form network.
             -c clean DANGER remove all connection type vpn from nmcli
             -h it is this information
 
@@ -93,6 +114,19 @@ if [ $? -eq 1 ]; then
 exit 1
 fi
 fi
+#check if parameter -g
+if [ "x" != "x$ag" ] ; then
+  get_ovpn_files
+  cd $target_1 2>/dev/null
+  echo $PWD
+#chek if -d patch is able to cd if not exit
+if [ $? -eq 1 ]; then
+  echo "-d $target_1 wrong patch to directory"
+exit 1
+fi
+fi
+
+
 #assign varaibles
 USERNAMEFORVPN=$au
 PASSWFORVPN=$ap
@@ -112,6 +146,6 @@ do
      uuidcon=$(nmcli connection import type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
      #reneme conenction and add username and password
      nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
-     echo "Added conncetion $line , uuid uuid is $uuidcon reneamed to $conname"
+     echo "Added conncetion $line,uuid is $uuidcon reneamed to $conname"
 
 done
