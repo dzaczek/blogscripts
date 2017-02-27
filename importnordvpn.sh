@@ -11,7 +11,8 @@
 sessionname=$(< /dev/urandom  tr -dc _A-Z-a-z-0-9 | head -c${8:-15};echo)
 target="/tmp/$sessionname/nordvpn.zip"
 target_1=/tmp/$sessionname/
-
+bck=$PWD
+wnump=0
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
   while [[ $(nmcli con show | awk '$3=="vpn" {print "1"}' | wc -l) -gt 0  ]]; do
@@ -34,6 +35,31 @@ get_ovpn_files(){
   rm -f $target
 
 }
+import_files_to_nmcli(){
+  dxa=6
+  dxb=0
+  echo "Added :"
+  printf '%s\n' "$a" | while IFS= read -r line
+ do
+      wnump=$(($wnump+1))
+      dxb=$(($dxb+1))
+      #prepare short name for connection
+      conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
+      # add/import connection to nmcli and grap uuid by regex in awk
+      uuidcon=$(nmcli connection import type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
+      #reneme conenction and add username and password
+      nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
+
+
+      echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
+#      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
+
+ done
+echo "Loops $wnump"
+}
+
+
+
 
 while getopts ":u:p:d:c h g" opt; do
  case $opt in
@@ -118,7 +144,7 @@ fi
 if [ "x" != "x$ag" ] ; then
 #get ovpn config files
   get_ovpn_files
-#go to diretory with ovpn config files 
+#go to diretory with ovpn config files
   cd $target_1 2>/dev/null
   echo $PWD
 #chek if -g patch is able to cd if not exit
@@ -139,20 +165,10 @@ if [[ `echo $a |wc | awk '{print $2}'` -eq 0 ]]; then
   echo "Ovpn filne in $PWD do not found "
   exit 1
 fi
+import_files_to_nmcli
 #iterating a line by line
- printf '%s\n' "$a" | while IFS= read -r line
-do
-     #prepare short name for connection
-     conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
-     # add/import connection to nmcli and grap uuid by regex in awk
-     uuidcon=$(nmcli connection import type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
-     #reneme conenction and add username and password
-     nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
-     echo "Added conncetion $line,uuid is $uuidcon reneamed to $conname"
-
-done
 if [ "x" != "x$ag" ] ; then
-cd ../
+cd $bck
 rm -fr $target_1 2>/dev/null
 #chek if -g patch is able to rm if not exit
 if [ $? -eq 1 ]; then
