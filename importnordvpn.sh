@@ -4,7 +4,7 @@
 #author          :dzaczek consolechars.wordpress.com
 #date            :20170227
 #version         :0.2
-#usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs]
+#usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
 #==============================================================================
@@ -66,7 +66,7 @@ if [ "x" != "x$ah" ]; then
             -p password it must be in qoutes " "
             -d patch to direcotory  ovpn files arguments not required you can run script in direcotry
                 version 0.1 do not suport white space in file name
-             -g Get configs form network.
+            -g Get configs form network.
             -c clean DANGER remove all connection type vpn from nmcli
             -h it is this information
 
@@ -116,10 +116,12 @@ fi
 fi
 #check if parameter -g
 if [ "x" != "x$ag" ] ; then
+#get ovpn config files
   get_ovpn_files
+#go to diretory with ovpn config files 
   cd $target_1 2>/dev/null
   echo $PWD
-#chek if -d patch is able to cd if not exit
+#chek if -g patch is able to cd if not exit
 if [ $? -eq 1 ]; then
   echo "-d $target_1 wrong patch to directory"
 exit 1
@@ -149,3 +151,12 @@ do
      echo "Added conncetion $line,uuid is $uuidcon reneamed to $conname"
 
 done
+if [ "x" != "x$ag" ] ; then
+cd ../
+rm -fr $target_1 2>/dev/null
+#chek if -g patch is able to rm if not exit
+if [ $? -eq 1 ]; then
+  echo "-d $target_1 wrong patch to directory i can remove directory"
+exit 1
+fi
+fi
