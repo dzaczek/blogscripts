@@ -30,11 +30,12 @@ nice_output(){
   in="$precenteage/100%"
   sizbar=$(($columns-${#in}-7))
   p1=$(echo "(($precenteage*$sizbar)/100)/1" | bc  )
+  arr=$5
   precenteage1=$p1
   precenteage2=$((sizbar-p1))
-  echo -n -e "\n\n\n\n\n \t\t\tImporting Files.$1/$2\n\n\n"
+  echo -n -e "\n\n\n\n\n \t\t\tImporting Files.$1/$2\t $6 \n\n\n"
   end=`date +%s`
-  echo  -n -e "\t\t\t Script Working $((end-$3)) seconds\n"
+  echo  -n -e "\t\t\t Script Working `date -d@$((end-$3)) -u +%H:%M:%S` seconds \n \t\t\t ETA : `date -d@$(echo "($2-$1)*$4" |bc -l) -u +%H:%M:%S`\n ${arr[@]}\n"
 
 
 #___________Progress___BAR______________________________
@@ -80,21 +81,27 @@ get_ovpn_files(){
 import_files_to_nmcli(){
   dxa=6
   dxb=0
+  dbl=( )
   echo "Added :"
   printf '%s\n' "$a" | while IFS= read -r line
  do
+        start_loop1=`date +%s.%N`
       wnump=$(($wnump+1))
-      dxb=$(($dxb+1))
+    #  dxb=$(($dxb+1))
       #prepare short name for connection
       conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
       # add/import connection to nmcli and grap uuid by regex in awk
       uuidcon=$(nmcli connection import type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
       #reneme conenction and add username and password
       nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
-
-     nice_output $wnump $numfiles $start
+      if [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0;else dbl[dxb]="$(echo "scale=3;$(date +%s.%N)-$start_loop1"| bc -l)";dxb=$(($dxb+1)); fi
+      average_nmcli_loop=$(echo "scale=2;($(echo ${dbl[*]}| tr ' ' '+'))/${#dbl[*]}" | bc -l )
+      echo "$average_nmcli_loop"
+      echo ${dbl[*]}
+      nice_output $wnump $numfiles $start $average_nmcli_loop "${dbl[*]}" $conname
       #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
 #      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
+
 
  done
 echo "Loops $wnump"
@@ -219,5 +226,3 @@ if [ $? -eq 1 ]; then
 exit 1
 fi
 fi
-end=`date +%s`
-echo =$((end-start))
