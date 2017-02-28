@@ -3,7 +3,7 @@
 #description     :This script will batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
 #date            :20170227
-#version         :0.2
+#version         :0.4
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
@@ -13,6 +13,48 @@ target="/tmp/$sessionname/nordvpn.zip"
 target_1=/tmp/$sessionname/
 bck=$PWD
 wnump=0
+#!/bin/bash
+ttt=$(ps ax | grep $$ | grep -v grep | awk '{print $2}')
+terminal="/dev/$ttt"
+#rows=$(stty -a <"$terminal" | grep -Po '(?<=rows )\d+')
+start=`date +%s`
+
+
+
+runtime=$((end-start))
+nice_output(){
+  clear
+  columns=$(stty -a <"$terminal" | grep -Po '(?<=columns )\d+')
+  #echo "Progress BARR"
+  precenteage=$(echo "(($1*100/$2))/1" | bc  )
+  in="$precenteage/100%"
+  sizbar=$(($columns-${#in}-7))
+  p1=$(echo "(($precenteage*$sizbar)/100)/1" | bc  )
+  precenteage1=$p1
+  precenteage2=$((sizbar-p1))
+  echo -n -e "\n\n\n\n\n \t\t\tImporting Files.$1/$2\n\n\n"
+  end=`date +%s`
+  echo  -n -e "\t\t\t Script Working $((end-$3)) seconds\n"
+
+
+#___________Progress___BAR______________________________
+  echo -n "$in"
+  echo  -n -e "["
+  #echo -n -e "\n"
+  for ((i=0;i<=precenteage1;i++)); do
+  echo -n  -e "\e[44m#\e[0m"
+  done
+
+  for ((i=0;i<precenteage2;i++)); do
+  echo -n -e "\e[100m-\e[0m"
+  done
+
+  echo  -n -e "]"
+  echo -n -e "100% \n"
+#______________________________________________
+}
+
+
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
   while [[ $(nmcli con show | awk '$3=="vpn" {print "1"}' | wc -l) -gt 0  ]]; do
@@ -50,8 +92,8 @@ import_files_to_nmcli(){
       #reneme conenction and add username and password
       nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
 
-
-      echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
+     nice_output $wnump $numfiles $start
+      #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
 #      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
 
  done
@@ -92,8 +134,8 @@ if [ "x" != "x$ah" ]; then
             -p password it must be in qoutes " "
             -d patch to direcotory  ovpn files arguments not required you can run script in direcotry
                 version 0.1 do not suport white space in file name
-            -g Get configs form network.
-            -c clean DANGER remove all connection type vpn from nmcli
+            -g Get configs frm network.
+            -c clean DANGER roemove all connection type vpn from nmcli
             -h it is this information
 
       examples:
@@ -160,8 +202,9 @@ USERNAMEFORVPN=$au
 PASSWFORVPN=$ap
 #ssign to vataible a all files *.vpn in directory
 a=$(ls *.ovpn)
+numfiles=$(echo $a |wc | awk '{print $2}')
 #check   if not len a eq 0
-if [[ `echo $a |wc | awk '{print $2}'` -eq 0 ]]; then
+if [[ "$numfiles" -eq 0 ]]; then
   echo "Ovpn filne in $PWD do not found "
   exit 1
 fi
@@ -176,3 +219,5 @@ if [ $? -eq 1 ]; then
 exit 1
 fi
 fi
+end=`date +%s`
+echo =$((end-start))
