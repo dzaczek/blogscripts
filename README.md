@@ -1,6 +1,5 @@
-![alt text]:(https://consolechars.files.wordpress.com/2015/07/cropped-zrzuty-ekranu2.jpg)
 # blogscripts
-
+![alt text](https://consolechars.files.wordpress.com/2015/07/cropped-zrzuty-ekranu2.jpg) "consolechars.wordpress.com LOGO")
 # Nord Vpn importer 
 
 Script for batch importing ovpn files fron NordVPN provider .
