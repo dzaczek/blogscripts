@@ -3,12 +3,12 @@
 #description     :This script will batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
 #date            :20170227
-#version         :0.4
+#version         :0.4a
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
 #==============================================================================
-sessionname=$(< /dev/urandom  tr -dc _A-Z-a-z-0-9 | head -c${8:-15};echo)
+sessionname="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c 6;echo;)"
 target="/tmp/$sessionname/nordvpn.zip"
 target_1=/tmp/$sessionname/
 bck=$PWD
@@ -91,13 +91,14 @@ import_files_to_nmcli(){
       #prepare short name for connection
       conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
       # add/import connection to nmcli and grap uuid by regex in awk
-      uuidcon=$(nmcli connection import type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
+      uuidcon=$(nmcli connection import $temp8 type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
       #reneme conenction and add username and password
-      nmcli con mod uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
+      nmcli con mod $temp8 uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
       if [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0;else dbl[dxb]="$(echo "scale=3;$(date +%s.%N)-$start_loop1"| bc -l)";dxb=$(($dxb+1)); fi
       average_nmcli_loop=$(echo "scale=2;($(echo ${dbl[*]}| tr ' ' '+'))/${#dbl[*]}" | bc -l )
-      echo "$average_nmcli_loop"
-      echo ${dbl[*]}
+      #echo "$average_nmcli_loop"
+      #echo ${dbl[*]}
+
       nice_output $wnump $numfiles $start $average_nmcli_loop "${dbl[*]}" $conname
       #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
 #      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
@@ -110,13 +111,14 @@ echo "Loops $wnump"
 
 
 
-while getopts ":u:p:d:c h g" opt; do
+while getopts ":u:p:d:c h g t" opt; do
  case $opt in
    u) au=$OPTARG   ;;
    p) ap=$OPTARG   ;;
    c) ac=1         ;;
    d) ad=$OPTARG ;;
    h) ah=1 ;;
+   t) att=1 ;;
    g) ag=1 ;;
    \?)       echo "Invalid option: -$OPTARG\n Please use parameter -h for help" >&2
    exit 1 ;;
@@ -136,23 +138,31 @@ if [ "x" != "x$ah" ]; then
   cat << EOF
           script batch adding openvpn  nordvpn configs to nmcli
           #time adding  1583 VPN'S  3:02:17.37 total
-      usage: up ./importnordvpn.sh [-u <"username">| -p <"password">][-h][-d <directory>][-c]
+      usage:
+      ./importnordvpn.sh [-u <"username">   -p <"password">][-h][-d <"directory"> || -g][-c]
+
+
             -u username (is mail ) it must be in qoutes " "
             -p password it must be in qoutes " "
-            -d patch to direcotory  ovpn files arguments not required you can run script in direcotry
-                version 0.1 do not suport white space in file name
-            -g Get configs frm network.
-            -c clean DANGER roemove all connection type vpn from nmcli
+            -d patch to direcotory  ovpn files arguments not required
+                you can run script in direcotry white space in patch
+                not working.
+            -g Get configs from network.
+            -c clean DANGER, roemove all connection type vpn from nmcli
+            -t Temporary use this for test, added configuration
+                disaper after restart NetworkManager (nmcli)
             -h it is this information
 
       examples:
-            ./importnordvpn -u "myemail@examplemail.com" -p "P44SSwoRd"
+            ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd"
           or
-            ./importnordvpn -u "myemail@examplemail.com" -p "P44SSwoRd" -d Download/configs/
+            ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd" -d Download/configs/
+          Get configuration from nordvpn.com
+            ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd" -d
           if you want clean configuration
              ./importnordvpn -c
-          clean configuration and load new
-            ./importnordvpn -c -u "myemail@examplemail.com" -p "P44SSwoRd" -d Download/configs/
+          clean configuration (remove all vpn's from nmcli ). and load new
+            ./importnordvpn -c -u "myemail@exampl.com" -p "P44SSwoRd" -d Download/configs/
       __________________________________________________________
       Report bugs to:dzaczek[animaleatingyellow fruit]sysop.cat
       up home page:https://consolechars.wordpress.com/
@@ -179,6 +189,12 @@ fi
 if [ "x" == "x$ap" ]; then
   echo "-p [password] is required"
   exit 1
+fi
+if [ "x" != "x$att" ]; then
+temp8="--temporary"
+echo "ok";
+else
+temp8=""
 fi
 #checked id direcotry is delcarated
 if [ "x" != "x$ad" ] ; then
@@ -208,6 +224,7 @@ fi
 USERNAMEFORVPN=$au
 PASSWFORVPN=$ap
 #ssign to vataible a all files *.vpn in directory
+
 a=$(ls *.ovpn)
 numfiles=$(echo $a |wc | awk '{print $2}')
 #check   if not len a eq 0
