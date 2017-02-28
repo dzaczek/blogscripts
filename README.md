@@ -1,17 +1,17 @@
+[logo]:https://consolechars.files.wordpress.com/2015/07/cropped-zrzuty-ekranu2.jpg
 # blogscripts
 
 # Nord Vpn importer 
 
 Script for batch importing ovpn files fron NordVPN provider .
 ## Example
-
+Get Configuration files from current dir.
 ```./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd"````
-      
-or
+ or
 Get configuration form local direcotry "-d"
           
 ```./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd" -d Download/configs/```
-            
+         
 Get configuration from nordvpn.com
           
 ```./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd" -g```
