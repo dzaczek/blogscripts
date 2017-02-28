@@ -1,5 +1,7 @@
 # blogscripts
 ![alt text](https://consolechars.files.wordpress.com/2015/07/cropped-zrzuty-ekranu2.jpg) "consolechars.wordpress.com LOGO")
+
+---
 ## Nord Vpn importer (importnordvpn.sh)
 
 Script for batch importing ovpn files from NordVPN .
@@ -28,3 +30,4 @@ clean configuration (remove all vpn's from nmcli ). and load new
        
 ###Effect :
 ![alt tag](https://consolechars.files.wordpress.com/2017/02/nordvpn-gnome.gif)
+---
