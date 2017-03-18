@@ -1,21 +1,39 @@
+#intime(COL) = strptime("%H:%M:%S",strcol(COL))
+set datafile separator ";"
+stats 'bps.sh' using 2
+
+set term png background "#330000" size 2560, 1080 \
+ font "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf,10"
+
+
+ #######################
+
+
+
+ ##############################
+set autoscale xfix
+ set output "speedtest.png"
+set multiplot layout 2,1
 set title "Analysing speed WAN\nwith date curl -L -w google.com "  textcolor linestyle 1
-unset multiplot
+####W
+ stats 'bps.sh' using 2 prefix "A"
+
 set xdata time
 #set style fill solid 1.0
 set datafile separator ";"
 set xlabel "Date\nTime" textcolor linestyle 1
 set timefmt "%d/%m/%y %H:%M:%S"
 set format x "%H:%M:%S\n%d/%m"
-#set yrange [ 0 : ]
+set yrange [ 0 : ]
 set xdata time
-set autoscale  xy
+set autoscale  x
 set ylabel "Speeed \nbytes/s" textcolor linestyle 1
 set grid
 
-set term png background "#330000" size 1920, 960 \
- font "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf,10"
 
-set output "speedtest.png"
+
+
+
 
 
 ##colors
@@ -39,7 +57,7 @@ set link y2 via FACTOR*y inverse y/FACTOR
 #average
 # number of points in moving average
 n = 60
-n1 = 5
+
 # initialize the variables
 do for [i=1:n] {
     eval(sprintf("back%d=0", i))
@@ -70,4 +88,91 @@ samples(x) = $0 > (n-1) ? n : ($0+1)
 avg_n(x) = (shift_n(x), @sum/samples($0))
 shift_n(x) = @shift
 #plot
-plot 'bps.sh'  using 1:2 t 'bytes/s' w points, 'bps.sh' using 1:(avg_n($2)) w l lc rgb "red" lw 2 title "avg 60 probs(10 minutes)"
+set autoscale xfix
+##################################
+#set style line 4 lt 2 lc rgb "green" lw 2
+set label 4 'set style line 4 lt 2 lc rgb "#90EE90" lw 2'  at -0.4, -0.55 tc rgb "#90EE90"
+set label 5 'set style line 5 lt 2 lc rgb "#009E60" lw 2'  at -0.4, -0.55 tc rgb "white"
+##################################
+plot 'bps.sh'  using   1:2 t 'bytes/s' w points, 'bps.sh' using 1:(avg_n($2)) w l lc rgb "red" lw 2 title "avg 60 probs(10 minutes)", A_mean  ls 4  title "  Mean",  A_median  ls 5  title "  Median"
+
+
+
+set title "Averages"
+set xdata time
+set timefmt "%d/%m/%y %H:%M:%S"
+#set format x "%H\n%d/%m"
+#set style data histogram
+#set style fill solid
+#set key autotitle column
+set autoscale x
+set autoscale xfix
+#binwidth = 0.1
+#set boxwidth binwidth
+#sum = 0
+n = 6
+nn = 360
+# initialize the variables
+do for [i=1:n] {
+    eval(sprintf("back%d=0", i))
+}
+
+# build shift function (back_n = back_n-1, ..., back1=x)
+shift = "("
+do for [i=n:2:-1] {
+    shift = sprintf("%sback%d = back%d, ", shift, i, i-1)
+}
+shift = shift."back1 = x)"
+# uncomment the next line for a check
+# print shift
+
+# build sum function (back1 + ... + backn)
+sum = "(back1"
+do for [i=2:n] {
+    sum = sprintf("%s+back%d", sum, i)
+}
+sum = sum.")"
+samples(x) = $0 > (n-1) ? n : ($0+1)
+
+avg_n(x) = (shift_n(x), @sum/samples($0))
+shift_n(x) = @shift
+
+#######################
+do for [r=1:nn] {
+    eval(sprintf("backw%d=0", r))
+}
+
+# build shift function (back_n = back_n-1, ..., back1=x)
+shiftw = "("
+do for [r=nn:2:-1] {
+    shiftw = sprintf("%sbackw%d = backw%d, ", shiftw, r, r-1)
+}
+shiftw = shiftw."backw1 = tt)"
+# uncomment the next line for a check
+# print shift
+
+# build sum function (back1 + ... + backn)
+sumw = "(backw1"
+do for [r=2:nn] {
+    sumw = sprintf("%s+backw%d", sumw, r)
+}
+sumw = sumw.")"
+samplesw(tt) = $0 > (nn-1) ? nn : ($0+1)
+
+avg_nw(tt) = (shift_nw(tt), @sumw/samplesw($0))
+shift_nw(tt) = @shiftw
+#######################
+
+
+#######################
+plot 'bps.sh' using 1:(avg_n($2)) w  dots lc rgb "red" lw 2 title "avg 6 probs(1 minutes)", 'bps.sh' using 1:(avg_nw($2)) w  dots lc rgb "green" lw 2 title "avg 360 probs(1 hour)"
+
+#set title "Histogram"#
+#set style data histogram
+#set style fill solid
+#binwidth=40
+#bin(x,width)=width*floor(x/width)
+#set datafile separator ";"
+#plot 'bps.sh' using 2 smooth freq with boxes
+unset multiplot
+reset
