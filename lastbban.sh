@@ -1,18 +1,19 @@
-
 #!/bin/bash
-target="./hosts.deny"
+target="/etc/hosts.deny"
 dayy=$(date +%-d); monthh=$(date +%b);
 isodate=$(date +%Y-%m-%dT%H:%M:%S%z)
-whitelist=(85.89.172.190 127.0.0.1 localhost)
-listbanned=(1.1.1.1 2.2.2.2 4.4.4.4)
-#($(cat hosts.deny | grep -ve "^#"| awk  -F: '{if($1="sshd")print $2}'))
+whitelist=(127.0.0.1 localhost )
+listbanned=($(cat $target | grep -ve "^#"| awk  -F: '{if($1="sshd")print $2}'))
 numofattemps=10
-periodtimb="+10min"
+#periodtimb="+10min"
 #lasb -s
-listtobaned=(a.a.a.a b.b.b.b 127.0.0.1 4.4.4.4)
+#listtobaned=(a.a.a.a b.b.b.b 127.0.0.1 4.4.4.4)
+listtobaned=($(lastb -i | awk -v day="$(date +%_d)"  '{if($6==day  ) print $3}' |sort | uniq -c |  awk -v lim=$numofattemps '{if($1>lim) print $2}'))
+
 #/todo/parser for lastb host or ip
 #([\S]+)[\W]+([\S]+)[\W]+([0-9]+)[[:space:]]([0-9][0-9]):([0-9][0-9]):([0-9][0-9])[[:space:]]([0-9][0-9][0-9][0-9])[[:space:]]-
 #(\w+\s+\d\s[\d]{2}:[\d]{2}:[\d]{2}\s[\d]{4}\)s\- http://regexr.com/3g2s0
+
 contains() {
 
   #cobvert array to list
@@ -24,7 +25,7 @@ contains() {
 
 banbanban() {
   #function banning
-  echo -ne "sshd: $1 \n##[$isodate] added $1 nmmber of attemps $2\n" #>> $target
+  echo -ne "sshd: $1 \n##[$isodate] added $1 nmmber of attemps $2\n" >> $target
 }
 
 list_wh="${whitelist[@]}"
@@ -46,10 +47,3 @@ else
   banbanban $a "200"
 fi
 done
-
-
-
-#for i in $(seq $dayy);
-#do
-#  echo -ne "\t $monthh $i\t\n"; lastb -a | grep $"$monthh " | awk -v var="$i" '{if($5==var) print $10}'| sort | uniq -c | sork -k1nr | head ;
-#done
