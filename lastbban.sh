@@ -11,7 +11,8 @@ periodtimb="+10min"
 #lasb -s
 listtobaned=(a.a.a.a b.b.b.b 127.0.0.1 4.4.4.4)
 #/todo/parser for lastb host or ip
-
+#([\S]+)[\W]+([\S]+)[\W]+([0-9]+)[[:space:]]([0-9][0-9]):([0-9][0-9]):([0-9][0-9])[[:space:]]([0-9][0-9][0-9][0-9])[[:space:]]-
+#(\w+\s+\d\s[\d]{2}:[\d]{2}:[\d]{2}\s[\d]{4}\)s\- http://regexr.com/3g2s0
 contains() {
 
   #cobvert array to list
