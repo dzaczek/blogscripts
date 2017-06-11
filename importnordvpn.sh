@@ -1,9 +1,9 @@
 #!/bin/bash
 #title           :importnordvpn.sh
-#description     :This script will batch import ovpn files  .
+#description     :This script  batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
 #date            :20170227
-#version         :0.4a
+#version         :0.4.2a
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
@@ -11,6 +11,9 @@
 sessionname="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c 6;echo;)"
 target="/tmp/$sessionname/nordvpn.zip"
 target_1=/tmp/$sessionname/
+nmclisysttemconnections="/etc/NetworkManager/system-connections"
+nmclibuffer="/tmp/$sessionname/bufer"
+nmclitmpfs="/etc/NetworkManager/tmpfs"
 bck=$PWD
 wnump=0
 #!/bin/bash
@@ -19,8 +22,8 @@ terminal="/dev/$ttt"
 #rows=$(stty -a <"$terminal" | grep -Po '(?<=rows )\d+')
 start=`date +%s`
 
-
-
+echo "start1"
+backupnmcliconnections
 runtime=$((end-start))
 nice_output(){
   clear
@@ -33,104 +36,166 @@ nice_output(){
   arr=$5
   precenteage1=$p1
   precenteage2=$((sizbar-p1))
+  echo "Session name: $sessionname"
   echo -n -e "\n\n\n\n\n \t\t\tImporting Files.$1/$2\t $6 \n\n\n"
   end=`date +%s`
   echo  -n -e "\t\t\t Script Working `date -d@$((end-$3)) -u +%H:%M:%S` seconds \n \t\t\t ETA : `date -d@$(echo "($2-$1)*$4" |bc -l) -u +%H:%M:%S`\n ${arr[@]}\n"
 
 
-#___________Progress___BAR______________________________
+  #___________Progress___BAR______________________________
   echo -n "$in"
   echo  -n -e "["
   #echo -n -e "\n"
   for ((i=0;i<=precenteage1;i++)); do
-  echo -n  -e "\e[44m#\e[0m"
+    echo -n  -e "\e[44m#\e[0m"
   done
 
   for ((i=0;i<precenteage2;i++)); do
-  echo -n -e "\e[100m-\e[0m"
+    echo -n -e "\e[100m-\e[0m"
   done
 
   echo  -n -e "]"
   echo -n -e "100% \n"
-#______________________________________________
+  #______________________________________________
 }
-
+echo "start2"
 
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
   while [[ $(nmcli con show | awk '$3=="vpn" {print "1"}' | wc -l) -gt 0  ]]; do
     nmcli con del $(nmcli con show | awk '$3=="vpn" {print $2}') 2>/dev/null
   done
-echo "Connection VPN removed"
+  echo "Connection VPN removed"
 }
-
+echo "start3"
 get_ovpn_files(){
   #get form network vpn-config files
-  mkdir $target_1
+
   url_config_f="aHR0cHM6Ly9ub3JkdnBuLmNvbS9hcGkvZmlsZXMvemlwCg=="
   wget $(echo "$url_config_f" | base64 -d) -O  $target
   if [ $? -eq 1 ]; then
     echo "I cant download ovpn files check internet connection"
-  exit 1
+    exit 1
   fi
   unzip $target -d$target_1
 
   rm -f $target
 
 }
+echo "start4"
+backupnmcliconnections() {
+  #create backup ncli connections
+  sudo tar -cvf ~/backupNMCLI-$sessionname.tar  $nmclisysttemconnections
+  if [ $? -eq 0 ]; then
+    echo "Backuped $nmclisysttemconnections  in home directory file : backupNMCLI-$sessionname.tar"
+    if hash xz 2>/dev/null;then
+      xz -9 ~/backupNMCLI-$sessionname.tar && echo "Compressed backup" &
+    else
+      echo "Nooooo xz consuela say nononono nono no  no packing "
+    fi
+  else
+    echo "Na backuped "
+  fi
+}
+echo "start5"
+fasterfaster(){
+  if [ ! -d $nmclibuffer ];then
+    sudo mkdir $nmclibuffer
+    sudo mount -t tmpfs -o size=20M tmpfs $nmclibuffer
+  fi
+  sudo mv $nmclisysttemconnections/* $nmclibuffer/
+  sleep 1
+  sudo systemctl restart NetworkManager.service
+  sleep 3
+}
+echo "start6"
+createramdisk(){
+  #mount ram disk for faster work nmcli
+  sudo mkdir $nmclitmpfs
+  sudo mount -t tmpfs -o size=1M tmpfs  $nmclitmpfs
+  sudo restorecon $nmclitmpfs
+  sudo mount --bind $nmclitmpfs $nmclisysttemconnections
+  sudo restorecon $nmclisysttemconnections
+  if [ ! -d $nmclibuffer ];then
+    sudo mkdir $nmclibuffer
+    sudo mount -t tmpfs -o size=20M tmpfs $nmclibuffer
+  fi
+
+}
+echo "start7"
+moveconfigsfromramdisk() {
+  sudo umount $nmclisysttemconnections
+  sudo cp -f $nmclibuffer/* $nmclisysttemconnections
+  sudo umount $nmclitmpfs
+  sudo umount $nmclibuffer
+  sudo rm -rf $nmclitmpfs
+  sudo rm -rf $nmclibuffer
+  sudo systemctl restart NetworkManager.service
+
+}
+echo "start8"
 import_files_to_nmcli(){
   dxa=6
   dxb=0
   dbl=( )
+  flags=30
   echo "Added :"
   printf '%s\n' "$a" | while IFS= read -r line
- do
-        start_loop1=`date +%s.%N`
-      wnump=$(($wnump+1))
+  do
+    if [ "x" != "x$arr" ]; then
+    if [ $flags -eq 0 ];then
+      fasterfaster
+      flags=11
+    fi
+  fi
+    flags=$(($flags-1))
+    start_loop1=`date +%s.%N`
+    wnump=$(($wnump+1))
     #  dxb=$(($dxb+1))
-      #prepare short name for connection
-      conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
-      # add/import connection to nmcli and grap uuid by regex in awk
-      uuidcon=$(nmcli connection import $temp8 type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
-      #reneme conenction and add username and password
-      nmcli con mod $temp8 uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
-      if [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0;else dbl[dxb]="$(echo "scale=3;$(date +%s.%N)-$start_loop1"| bc -l)";dxb=$(($dxb+1)); fi
-      average_nmcli_loop=$(echo "scale=2;($(echo ${dbl[*]}| tr ' ' '+'))/${#dbl[*]}" | bc -l )
-      #echo "$average_nmcli_loop"
-      #echo ${dbl[*]}
+    #prepare short name for connection
+    conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
+    # add/import connection to nmcli and grap uuid by regex in awk
+    uuidcon=$(nmcli connection import $temp8 type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
+    #reneme conenction and add username and password
+    nmcli con mod $temp8 uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
+    if [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0;else dbl[dxb]="$(echo "scale=3;$(date +%s.%N)-$start_loop1"| bc -l)";dxb=$(($dxb+1)); fi
+    average_nmcli_loop=$(echo "scale=2;($(echo ${dbl[*]}| tr ' ' '+'))/${#dbl[*]}" | bc -l )
+    #echo "$average_nmcli_loop"
+    #echo ${dbl[*]}
 
-      nice_output $wnump $numfiles $start $average_nmcli_loop "${dbl[*]}" $conname
-      #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
-#      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
+    nice_output $wnump $numfiles $start $average_nmcli_loop "${dbl[*]}" $conname
+    #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
+    #      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
 
 
- done
-echo "Loops $wnump"
+  done
+  echo "Loops $wnump"
 }
 
 
+echo "start5"
 
+while getopts ":u:p:d:c h g t r" opt; do
+  case $opt in
+    u) au=$OPTARG   ;;
+    p) ap=$OPTARG   ;;
+    c) ac=1         ;;
+    d) ad=$OPTARG ;;
+    h) ah=1 ;;
+    t) att=1 ;;
+    r) arr=1 ;;
+    g) ag=1 ;;
+    \?)       echo "Invalid option: -$OPTARG\n Please use parameter -h for help" >&2
+    exit 1 ;;
 
-while getopts ":u:p:d:c h g t" opt; do
- case $opt in
-   u) au=$OPTARG   ;;
-   p) ap=$OPTARG   ;;
-   c) ac=1         ;;
-   d) ad=$OPTARG ;;
-   h) ah=1 ;;
-   t) att=1 ;;
-   g) ag=1 ;;
-   \?)       echo "Invalid option: -$OPTARG\n Please use parameter -h for help" >&2
-   exit 1 ;;
-
- esac
+  esac
 done
 
 
 if [ "$#" ==  0 ]; then
 
-    echo "Parameter do not found please use -h for help"  ; exit 1;
-	exit 1
+  echo "Parameter do not found please use -h for help"  ; exit 1;
+  exit 1
 fi
 
 #check if -h print help end exit
@@ -152,7 +217,8 @@ if [ "x" != "x$ah" ]; then
             -t Temporary use this for test, added configuration
                 disaper after restart NetworkManager (nmcli)
             -h it is this information
-
+            -r Test function for fast add servers , all operations
+                works on ram disk and NetwormManager is restarted every 30 servers
       examples:
             ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd"
           or
@@ -161,7 +227,7 @@ if [ "x" != "x$ah" ]; then
             ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd" -d
           if you want clean configuration
              ./importnordvpn -c
-          clean configuration (remove all vpn's from nmcli ). and load new
+          clean configuration (remove all vpns from nmcli ). and load new
             ./importnordvpn -c -u "myemail@exampl.com" -p "P44SSwoRd" -d Download/configs/
       __________________________________________________________
       Report bugs to:dzaczek[animaleatingyellow fruit]sysop.cat
@@ -175,10 +241,10 @@ fi
 if [ "x" != "x$ac" ]; then
 
   remove_all_vpn
-#check if username and password id declarated if not exit
-if [ "x" == "x$au" ] && [ "x" == "x$ap" ]; then
-  exit 1
-fi
+  #check if username and password id declarated if not exit
+  if [ "x" == "x$au" ] && [ "x" == "x$ap" ]; then
+    exit 1
+  fi
 fi
 #checked if username declarated
 if [ "x" == "x$au" ]; then
@@ -191,32 +257,33 @@ if [ "x" == "x$ap" ]; then
   exit 1
 fi
 if [ "x" != "x$att" ]; then
-temp8="--temporary"
-echo "ok";
+  temp8="--temporary"
+  echo "ok";
 else
-temp8=""
+  temp8=""
 fi
 #checked id direcotry is delcarated
 if [ "x" != "x$ad" ] ; then
-cd $ad 2>/dev/null
-#chek if -d patch is able to cd if not exit
-if [ $? -eq 1 ]; then
-  echo "-d $ad wrong patch to directory"
-exit 1
-fi
+  cd $ad 2>/dev/null
+  #chek if -d patch is able to cd if not exit
+  if [ $? -eq 1 ]; then
+    echo "-d $ad wrong patch to directory"
+    exit 1
+  fi
 fi
 #check if parameter -g
 if [ "x" != "x$ag" ] ; then
-#get ovpn config files
+  #get ovpn config files
+  mkdir $target_1
   get_ovpn_files
-#go to diretory with ovpn config files
+  #go to diretory with ovpn config files
   cd $target_1 2>/dev/null
   echo $PWD
-#chek if -g patch is able to cd if not exit
-if [ $? -eq 1 ]; then
-  echo "-d $target_1 wrong patch to directory"
-exit 1
-fi
+  #chek if -g patch is able to cd if not exit
+  if [ $? -eq 1 ]; then
+    echo "-d $target_1 wrong patch to directory"
+    exit 1
+  fi
 fi
 
 
@@ -232,14 +299,27 @@ if [[ "$numfiles" -eq 0 ]]; then
   echo "Ovpn filne in $PWD do not found "
   exit 1
 fi
-import_files_to_nmcli
-#iterating a line by line
-if [ "x" != "x$ag" ] ; then
-cd $bck
-rm -fr $target_1 2>/dev/null
-#chek if -g patch is able to rm if not exit
-if [ $? -eq 1 ]; then
-  echo "-d $target_1 wrong patch to directory i can remove directory"
-exit 1
+echo "start3"
+mkdir $target_1
+if [ "x" != "x$arr" ]; then
+createramdisk 15
 fi
+
+
+
+import_files_to_nmcli
+if [ "x" != "x$arr" ]; then
+moveconfigsfromramdisk
+fi
+
+
+# Program strat here iterating a line by line and adding
+if [ "x" != "x$ag" ] ; then
+  cd $bck
+  rm -fr $target_1 2>/dev/null
+  #chek if -g patch is able to rm if not exit
+  if [ $? -eq 1 ]; then
+    echo "-d $target_1 wrong patch to directory i can remove directory"
+    exit 1
+  fi
 fi
