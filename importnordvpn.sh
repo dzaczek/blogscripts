@@ -22,8 +22,8 @@ terminal="/dev/$ttt"
 #rows=$(stty -a <"$terminal" | grep -Po '(?<=rows )\d+')
 start=`date +%s`
 
-echo "start1"
-backupnmcliconnections
+
+
 runtime=$((end-start))
 nice_output(){
   clear
@@ -58,7 +58,7 @@ nice_output(){
   echo -n -e "100% \n"
   #______________________________________________
 }
-echo "start2"
+
 
 remove_all_vpn(){
   #remove all vpn utill any vpn conncetion is on a list
@@ -67,7 +67,7 @@ remove_all_vpn(){
   done
   echo "Connection VPN removed"
 }
-echo "start3"
+
 get_ovpn_files(){
   #get form network vpn-config files
 
@@ -82,7 +82,7 @@ get_ovpn_files(){
   rm -f $target
 
 }
-echo "start4"
+
 backupnmcliconnections() {
   #create backup ncli connections
   sudo tar -cvf ~/backupNMCLI-$sessionname.tar  $nmclisysttemconnections
@@ -97,7 +97,7 @@ backupnmcliconnections() {
     echo "Na backuped "
   fi
 }
-echo "start5"
+
 fasterfaster(){
   if [ ! -d $nmclibuffer ];then
     sudo mkdir $nmclibuffer
@@ -122,18 +122,19 @@ createramdisk(){
   fi
 
 }
-echo "start7"
+
 moveconfigsfromramdisk() {
+  sudo mv -f  $nmclisysttemconnections/ $nmclibuffer/*
   sudo umount $nmclisysttemconnections
-  sudo cp -f $nmclibuffer/* $nmclisysttemconnections
+  sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
   sudo umount $nmclitmpfs
   sudo umount $nmclibuffer
-  sudo rm -rf $nmclitmpfs
+  sudo rm -rf $nmclitmpfs9
   sudo rm -rf $nmclibuffer
   sudo systemctl restart NetworkManager.service
 
 }
-echo "start8"
+
 import_files_to_nmcli(){
   dxa=6
   dxb=0
@@ -173,7 +174,7 @@ import_files_to_nmcli(){
 }
 
 
-echo "start5"
+
 
 while getopts ":u:p:d:c h g t r" opt; do
   case $opt in
@@ -197,12 +198,14 @@ if [ "$#" ==  0 ]; then
   echo "Parameter do not found please use -h for help"  ; exit 1;
   exit 1
 fi
-
+backupnmcliconnections
 #check if -h print help end exit
 if [ "x" != "x$ah" ]; then
   cat << EOF
           script batch adding openvpn  nordvpn configs to nmcli
           #time adding  1583 VPN'S  3:02:17.37 total
+          #time adin 2197 7h
+          #time adding 2197 wuth -r parameter form 30 minutes to 1h 20 minutes
       usage:
       ./importnordvpn.sh [-u <"username">   -p <"password">][-h][-d <"directory"> || -g][-c]
 
@@ -218,7 +221,7 @@ if [ "x" != "x$ah" ]; then
                 disaper after restart NetworkManager (nmcli)
             -h it is this information
             -r Test function for fast add servers , all operations
-                works on ram disk and NetwormManager is restarted every 30 servers
+                works on ram disk and NetwormManager is restarted every 30 new added configs
       examples:
             ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd"
           or
@@ -299,7 +302,7 @@ if [[ "$numfiles" -eq 0 ]]; then
   echo "Ovpn filne in $PWD do not found "
   exit 1
 fi
-echo "start3"
+
 mkdir $target_1
 if [ "x" != "x$arr" ]; then
 createramdisk 15
