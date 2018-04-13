@@ -2,7 +2,7 @@
 #title           :importnordvpn.sh
 #description     :This script  batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
-#date            :20180314 # yes friday 13 
+#date            :20180313 # yes friday 13 
 #version         :0.4.8a
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
