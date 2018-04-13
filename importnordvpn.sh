@@ -3,7 +3,7 @@
 #description     :This script  batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
 #date            :20170227
-#version         :0.4.2a
+#version         :0.4.8a
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
@@ -16,7 +16,6 @@ nmclibuffer="/tmp/$sessionname/bufer"
 nmclitmpfs="/etc/NetworkManager/tmpfs"
 bck=$PWD
 wnump=0
-#!/bin/bash
 ttt=$(ps ax | grep $$ | grep -v grep | awk '{print $2}')
 terminal="/dev/$ttt"
 #rows=$(stty -a <"$terminal" | grep -Po '(?<=rows )\d+')
@@ -33,13 +32,13 @@ nice_output(){
   in="$precenteage/100%"
   sizbar=$(($columns-${#in}-7))
   p1=$(echo "(($precenteage*$sizbar)/100)/1" | bc  )
-  arr=$5
+  arrr=$5
   precenteage1=$p1
   precenteage2=$((sizbar-p1))
   echo "Session name: $sessionname"
   echo -n -e "\n\n\n\n\n \t\t\tImporting Files.$1/$2\t $6 \n\n\n"
   end=`date +%s`
-  echo  -n -e "\t\t\t Script Working `date -d@$((end-$3)) -u +%H:%M:%S` seconds \n \t\t\t ETA : `date -d@$(echo "($2-$1)*$4" |bc -l) -u +%H:%M:%S`\n ${arr[@]}\n"
+  echo  -n -e "\t\t\t Script Working `date -d@$((end-$3)) -u +%H:%M:%S` seconds \n \t\t\t ETA : `date -d@$(echo "($2-$1)*$4" |bc -l) -u +%H:%M:%S`\n ${arrr[@]}\n"
 
 
   #___________Progress___BAR______________________________
@@ -101,7 +100,7 @@ backupnmcliconnections() {
 fasterfaster(){
   if [ ! -d $nmclibuffer ];then
     sudo mkdir $nmclibuffer
-    sudo mount -t tmpfs -o size=20M tmpfs $nmclibuffer
+    sudo mount -t tmpfs -o size=100M tmpfs $nmclibuffer
   fi
   sudo mv $nmclisysttemconnections/* $nmclibuffer/
   sleep 1
@@ -118,15 +117,24 @@ createramdisk(){
   sudo restorecon $nmclisysttemconnections
   if [ ! -d $nmclibuffer ];then
     sudo mkdir $nmclibuffer
-    sudo mount -t tmpfs -o size=20M tmpfs $nmclibuffer
+    sudo mount -t tmpfs -o size=100M tmpfs $nmclibuffer
   fi
 
+}
+
+restore_files(){
+for x in {a..z}
+do
+sudo mv -f $nmclibuffer/$x* $nmclisysttemconnections/
+done
+sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
 }
 
 moveconfigsfromramdisk() {
   sudo mv -f  $nmclisysttemconnections/ $nmclibuffer/*
   sudo umount $nmclisysttemconnections
-  sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
+  #sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
+  restore_files
   sudo umount $nmclitmpfs
   sudo umount $nmclibuffer
   sudo rm -rf $nmclitmpfs9
@@ -148,8 +156,8 @@ import_files_to_nmcli(){
       fasterfaster
       flags=11
     fi
-  fi
     flags=$(($flags-1))
+fi
     start_loop1=`date +%s.%N`
     wnump=$(($wnump+1))
     #  dxb=$(($dxb+1))
