@@ -2,8 +2,8 @@
 #title           :importnordvpn.sh
 #description     :This script  batch import ovpn files  .
 #author          :dzaczek consolechars.wordpress.com
-#date            :20180313 # yes friday 13 
-#version         :0.4.8a
+#date            :20180415
+#version         :0.4.9a
 #usage           :./bash mkscript.sh -u [username] -p [password] -d [directory with ovpn configs] || -g
 #notes           :Install NetworkManager.x86_64 NetworkManager-openvpn.x86_64 NetworkManager-openvpn-gnome.x86_64 awk
 #notes           : Script reqquired time, for add 1583 vpn config needed 3h 2m
@@ -20,7 +20,7 @@ ttt=$(ps ax | grep $$ | grep -v grep | awk '{print $2}')
 terminal="/dev/$ttt"
 #rows=$(stty -a <"$terminal" | grep -Po '(?<=rows )\d+')
 start=`date +%s`
-
+UUIDFILE="/tmp/$sessionname.file.dat"
 
 
 runtime=$((end-start))
@@ -125,9 +125,9 @@ createramdisk(){
 restore_files(){
 for x in {a..z}
 do
-sudo mv -f $nmclibuffer/$x* $nmclisysttemconnections/
+  sudo mv -f $nmclibuffer/${x}* $nmclisysttemconnections/
 done
-sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
+  sudo mv -f $nmclibuffer/* $nmclisysttemconnections/
 }
 
 moveconfigsfromramdisk() {
@@ -147,6 +147,7 @@ import_files_to_nmcli(){
   dxa=6
   dxb=0
   dbl=( )
+  touch $UUIDFILE
   flags=30
   echo "Added :"
   printf '%s\n' "$a" | while IFS= read -r line
@@ -164,24 +165,38 @@ fi
     #prepare short name for connection
     conname=`echo $line | awk  -F "." '{print $1"-"$4}' `
     # add/import connection to nmcli and grap uuid by regex in awk
-    uuidcon=$(nmcli connection import $temp8 type openvpn  file  $line |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
+    uuidcon=$(nmcli -w 10 connection import $temp8 type openvpn  file  $line  |  awk 'match($0,  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) {print substr($0, RSTART, RLENGTH)}')
     #reneme conenction and add username and password
-    nmcli con mod $temp8 uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN"
+    #nmcli -w 5 con mod $temp8 uuid $uuidcon connection.id $conname +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN" &
+    echo "$uuidcon,$conname" >> $UUIDFILE
     if [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0;else dbl[dxb]="$(echo "scale=3;$(date +%s.%N)-$start_loop1"| bc -l)";dxb=$(($dxb+1)); fi
     average_nmcli_loop=$(echo "scale=2;($(echo ${dbl[*]}| tr ' ' '+'))/${#dbl[*]}" | bc -l )
     #echo "$average_nmcli_loop"
     #echo ${dbl[*]}
 
-    nice_output $wnump $numfiles $start $average_nmcli_loop "${dbl[*]}" $conname
+    nice_output $wnump $numfiles $start $average_nmcli_loop  "${dbl[*]}" $conname
     #echo -n -e "\e[$((31+$dxb))m$conname\e[0m\t" ; if  [ $dxb -eq $dxa ];then echo -n -e "\n";dxb=0; fi
     #      echo -e "$wnump. Added $conname:\t $uuidcon" #verbose
 
 
   done
+
   echo "Loops $wnump"
+  usernameandpasswd
 }
 
+usernameandpasswd(){
+echo $UUIDFILE
 
+while read SLINE
+do
+  echo `echo $SLINE | cut -d, -f1`
+  echo `echo $SLINE | cut -d, -f2`
+
+  nmcli  con mod $temp8 uuid `echo $SLINE | cut -d, -f1` connection.id `echo $SLINE | cut -d, -f2`  +vpn.data "username=$USERNAMEFORVPN" vpn.secrets password="$PASSWFORVPN" &
+done < "$UUIDFILE"
+
+}
 
 
 while getopts ":u:p:d:c h g t r" opt; do
@@ -215,7 +230,7 @@ if [ "x" != "x$ah" ]; then
           #time adin 2197 7h
           #time adding 2197 wuth -r parameter form 30 minutes to 1h 20 minutes
       usage:
-      ./importnordvpn.sh [-u <"username">   -p <"password">][-h][-d <"directory"> || -g][-c]
+      ./importnordvpn.sh [-u <"username">   -p <"password">][-h][-d <"directory"> || -g][-c][-t][-r]
 
 
             -u username (is mail ) it must be in qoutes " "
@@ -229,7 +244,7 @@ if [ "x" != "x$ah" ]; then
                 disaper after restart NetworkManager (nmcli)
             -h it is this information
             -r Test function for fast add servers , all operations
-                works on ram disk and NetwormManager is restarted every 30 new added configs
+                works on ram disk and NetwormManager is restarted every 30 new added configs (NOT FINISHED)
       examples:
             ./importnordvpn -u "myemail@exampl.com" -p "P44SSwoRd"
           or
@@ -240,7 +255,8 @@ if [ "x" != "x$ah" ]; then
              ./importnordvpn -c
           clean configuration (remove all vpns from nmcli ). and load new
             ./importnordvpn -c -u "myemail@exampl.com" -p "P44SSwoRd" -d Download/configs/
-      __________________________________________________________
+
+     __________________________________________________________
       Report bugs to:dzaczek[animaleatingyellow fruit]sysop.cat
       up home page:https://consolechars.wordpress.com/
       ______________)____________________________________________
